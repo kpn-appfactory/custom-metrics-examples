@@ -69,7 +69,8 @@ func main() {
 		}
 	}()
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":9499", nil))
 }
 
 func newHandlerWithHistogram(handler http.Handler, histogram *prometheus.HistogramVec) http.Handler {
