@@ -1,0 +1,76 @@
+name: Bump version and push new image
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+
+    - name: print reviewers
+      run: |
+        echo " Print - ${{ secrets.REVIEWER_LIST }} "
+
+    - name: Bump version and push tag
+      # https://github.com/anothrNick/github-tag-action
+      id: bump_version
+      uses: anothrNick/github-tag-action@1.36.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WITH_V: false
+        DEFAULT_BUMP: patch
+
+    - name: Set releaase
+      run: |
+        echo "GITHUB_ORG="$(echo ${GITHUB_REPOSITORY} | sed 's/\/docker-.*//' ) >> $GITHUB_ENV
+        echo "GITHUB_REPO="$(echo ${GITHUB_REPOSITORY} | sed 's/.*\/docker-//' ) >> $GITHUB_ENV
+        cat $GITHUB_ENV
+
+    - name: Checkout repository
+      # https://github.com/actions/checkout
+      uses: actions/checkout@v2
+
+    - name: Log in to the Container registry
+      # https://github.com/docker/login-action
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      # https://github.com/docker/setup-buildx-action
+      id: buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Build and push
+      # https://github.com/docker/build-push-action
+      id: docker_build
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./prometheus/golang/Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{env.GITHUB_ORG}}/${{env.GITHUB_REPO}}:${{ steps.bump_version.outputs.new_tag }}
+          ghcr.io/${{env.GITHUB_ORG}}/${{env.GITHUB_REPO}}:latest
+
+# Error: Advanced Security must be enabled for this repository to use code scanning.
+    # - name: Scan image
+    #   id: scan
+    #   uses: sysdiglabs/scan-action@v3
+    #   with:
+    #     image-tag: ghcr.io/${{env.GITHUB_ORG}}/${{env.GITHUB_REPO}}:scan
+    #     sysdig-secure-token: ${{ secrets.SYSDIG_SECURE }}
+    #     input-type: docker-daemon
+    #     run-as-user: root
+
+    # -  name: Upload report to Sysdig Secure
+    #    uses: github/codeql-action/upload-sarif@v1
+    #    if: always()
+    #    with:
+    #      sarif_file: ${{ steps.scan.outputs.sarifReport }}
