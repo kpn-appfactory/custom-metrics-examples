@@ -53,7 +53,7 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: .
-        file: ./prometheus/golang/Dockerfile
+        file: ./prometheus/python/Dockerfile
         push: true
         tags: |
           ghcr.io/${{env.GITHUB_ORG}}/${{env.GITHUB_REPO}}:${{ steps.bump_version.outputs.new_tag }}
